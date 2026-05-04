@@ -86,7 +86,7 @@ router.post(
       res.status(400).json({ error: parsed.error.message });
       return;
     }
-    const user = (req as AuthedRequest).user;
+    const user = (req as any).user;
 
     const [thread] = await db
       .select({ id: threadsTable.id })
@@ -138,7 +138,7 @@ router.post(
       res.status(400).json({ error: parsed.error.message });
       return;
     }
-    const user = (req as AuthedRequest).user;
+    const user = (req as any).user;
 
     const [post] = await db
       .select({ id: postsTable.id })

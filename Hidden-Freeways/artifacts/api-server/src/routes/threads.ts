@@ -85,7 +85,7 @@ router.post("/threads", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const user = (req as AuthedRequest).user;
+  const user = (req as any).user;
 
   const [cat] = await db
     .select()
@@ -176,7 +176,7 @@ router.post("/threads/:id/posts", requireAuth, async (req, res): Promise<void> =
     res.status(400).json({ error: "Reply cannot be empty" });
     return;
   }
-  const user = (req as AuthedRequest).user;
+  const user = (req as any).user;
 
   const [thread] = await db
     .select()

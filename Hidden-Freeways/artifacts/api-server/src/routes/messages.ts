@@ -17,7 +17,7 @@ import { type AuthedRequest, requireAuth } from "../lib/auth";
 const router: IRouter = Router();
 
 router.get("/messages", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as AuthedRequest).user;
+  const user = (req as any).user;
 
   const rows = await db.execute(sql`
     SELECT
@@ -43,7 +43,7 @@ router.post("/messages", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const user = (req as AuthedRequest).user;
+  const user = (req as any).user;
   const target = parsed.data.username.trim();
   if (!target || target === user.username) {
     res.status(400).json({ error: "Choose a different user" });
@@ -109,7 +109,7 @@ router.get(
       res.status(400).json({ error: params.error.message });
       return;
     }
-    const user = (req as AuthedRequest).user;
+    const user = (req as any).user;
 
     const [chat] = await db
       .select()
@@ -179,7 +179,7 @@ router.post(
       res.status(400).json({ error: "Message cannot be empty" });
       return;
     }
-    const user = (req as AuthedRequest).user;
+    const user = (req as any).user;
 
     const [chat] = await db
       .select()

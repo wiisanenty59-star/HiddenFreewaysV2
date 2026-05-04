@@ -39,7 +39,7 @@ router.post(
       res.status(400).json({ error: parsed.error.message });
       return;
     }
-    const user = (req as AuthedRequest).user;
+    const user = (req as any).user;
 
     const [created] = await db
       .insert(announcementsTable)

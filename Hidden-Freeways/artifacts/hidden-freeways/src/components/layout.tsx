@@ -1,10 +1,28 @@
 import { Link, useLocation } from "wouter";
-import { useGetCurrentUser, useLogout, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
+import {
+  useGetCurrentUser,
+  useLogout,
+  getGetCurrentUserQueryKey
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Shield, LogOut, PlusSquare, MessageSquare, Users, Mail } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import {
+  Shield,
+  LogOut,
+  PlusSquare,
+  MessageSquare,
+  Users,
+  Mail
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -15,46 +33,70 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     logout.mutate(undefined, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: getGetCurrentUserQueryKey()
+        });
+        queryClient.clear(); // 🔥 kills stale session cache
         setLocation("/login");
       }
     });
   };
 
+  // ✅ hard stop if no user
+  if (!isLoading && !user) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center">
+        <Link href="/login">
+          <Button variant="outline">Access Portal</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // ✅ no fake fallback
+  const username = user?.username;
+  const initials = username
+    ? username.slice(0, 2).toUpperCase()
+    : "??";
+
   return (
     <div className="min-h-[100dvh] flex flex-col relative">
-      <div className="scanlines" />
-      <div className="noise" />
-      
-      <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <span className="text-primary font-serif text-2xl tracking-widest uppercase">HiddenFreeways</span>
+
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-primary font-serif text-2xl uppercase tracking-widest">
+              HiddenFreeways
+            </span>
           </Link>
 
           <nav className="flex items-center gap-4">
+
             {isLoading ? (
-              <Skeleton className="h-8 w-8 rounded-full bg-muted/50" />
-            ) : user ? (
+              <Skeleton className="h-8 w-8 rounded-full" />
+            ) : (
               <>
                 <Link href="/chat">
-                  <Button variant="ghost" size="sm" className="hidden md:flex font-mono uppercase tracking-wider text-xs">
+                  <Button variant="ghost" size="sm">
                     <MessageSquare className="h-4 w-4 mr-2" /> Chat
                   </Button>
                 </Link>
+
                 <Link href="/crews">
-                  <Button variant="ghost" size="sm" className="hidden md:flex font-mono uppercase tracking-wider text-xs">
+                  <Button variant="ghost" size="sm">
                     <Users className="h-4 w-4 mr-2" /> Crews
                   </Button>
                 </Link>
+
                 <Link href="/messages">
-                  <Button variant="ghost" size="sm" className="hidden md:flex font-mono uppercase tracking-wider text-xs">
+                  <Button variant="ghost" size="sm">
                     <Mail className="h-4 w-4 mr-2" /> DMs
                   </Button>
                 </Link>
+
                 <Link href="/new-thread">
-                  <Button variant="outline" size="sm" className="hidden sm:flex border-primary/20 hover:border-primary/50 text-primary">
+                  <Button variant="outline" size="sm">
                     <PlusSquare className="h-4 w-4 mr-2" />
                     New Thread
                   </Button>
@@ -62,83 +104,58 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                      <Avatar className="h-8 w-8 rounded-none border border-border">
-                        <AvatarImage src={user.avatarUrl || ""} alt={user.username} />
-                        <AvatarFallback className="rounded-none bg-secondary text-secondary-foreground font-mono text-xs">
-                          {user.username.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
+                    <Button variant="ghost" className="h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8 rounded-none border">
+                        <AvatarImage src={user?.avatarUrl ?? ""} />
+                        <AvatarFallback>{initials}</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 rounded-none border-border/50 bg-card" align="end" forceMount>
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none font-mono">{user.username}</p>
-                        <p className="text-xs leading-none text-muted-foreground uppercase tracking-wider">
-                          {user.role}
+
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col">
+                        <p className="text-sm font-mono">{username}</p>
+                        <p className="text-xs text-muted-foreground uppercase">
+                          {user?.role ?? "member"}
                         </p>
                       </div>
                     </DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-border/50" />
-                    {user.role === "admin" && (
-                      <DropdownMenuItem asChild className="cursor-pointer focus:bg-accent/20 focus:text-accent-foreground rounded-none">
-                        <Link href="/admin" className="flex w-full items-center">
+
+                    <DropdownMenuSeparator />
+
+                    {user?.role === "admin" && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin" className="flex items-center w-full">
                           <Shield className="mr-2 h-4 w-4" />
-                          <span>Admin Control</span>
+                          Admin Control
                         </Link>
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem asChild className="cursor-pointer focus:bg-primary/20 focus:text-primary-foreground rounded-none sm:hidden">
-                      <Link href="/new-thread" className="flex w-full items-center">
-                        <PlusSquare className="mr-2 h-4 w-4" />
-                        <span>New Thread</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="cursor-pointer focus:bg-primary/20 focus:text-primary-foreground rounded-none md:hidden">
-                      <Link href="/chat" className="flex w-full items-center">
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        <span>Chat</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="cursor-pointer focus:bg-primary/20 focus:text-primary-foreground rounded-none md:hidden">
-                      <Link href="/crews" className="flex w-full items-center">
-                        <Users className="mr-2 h-4 w-4" />
-                        <span>Crews</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="cursor-pointer focus:bg-primary/20 focus:text-primary-foreground rounded-none md:hidden">
-                      <Link href="/messages" className="flex w-full items-center">
-                        <Mail className="mr-2 h-4 w-4" />
-                        <span>DMs</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:bg-destructive/20 focus:text-destructive rounded-none">
+
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="text-destructive"
+                    >
                       <LogOut className="mr-2 h-4 w-4" />
-                      <span>Disconnect</span>
+                      Disconnect
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
-            ) : (
-              <Link href="/login">
-                <Button variant="outline" size="sm" className="rounded-none border-primary/20 text-primary hover:bg-primary/10 hover:text-primary font-mono uppercase tracking-wider text-xs">
-                  Access Portal
-                </Button>
-              </Link>
             )}
           </nav>
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-8 relative z-10">
+      <main className="flex-1 container mx-auto px-4 py-8">
         {children}
       </main>
 
-      <footer className="border-t border-border/50 bg-background py-6 relative z-10 mt-auto">
+      <footer className="border-t py-6 mt-auto">
         <div className="container mx-auto px-4 text-center">
-          <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">
-            {new Date().getFullYear()} // HiddenFreeways // The freeways stay hidden
+          <p className="text-xs font-mono uppercase text-muted-foreground">
+            {new Date().getFullYear()} // HiddenFreeways
           </p>
         </div>
       </footer>

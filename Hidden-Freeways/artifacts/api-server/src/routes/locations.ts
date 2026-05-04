@@ -65,7 +65,7 @@ router.post("/locations", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const user = (req as AuthedRequest).user;
+  const user = (req as any).user;
 
   const [state] = await db
     .select()

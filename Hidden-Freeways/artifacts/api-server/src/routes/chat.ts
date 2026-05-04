@@ -26,7 +26,7 @@ router.get(
   "/chat/rooms",
   requireAuth,
   async (req, res): Promise<void> => {
-    const user = (req as AuthedRequest).user;
+    const user = (req as any).user;
 
     // Crew rooms are private — exclude rooms attached to a crew
     const crewRoomIds = await db
@@ -119,7 +119,7 @@ router.get(
       res.status(400).json({ error: params.error.message });
       return;
     }
-    const user = (req as AuthedRequest).user;
+    const user = (req as any).user;
 
     const [room] = await db
       .select()
@@ -182,7 +182,7 @@ router.post(
       res.status(400).json({ error: "Message cannot be empty" });
       return;
     }
-    const user = (req as AuthedRequest).user;
+    const user = (req as any).user;
 
     const [room] = await db
       .select()

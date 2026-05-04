@@ -50,7 +50,7 @@ async function loadCrewWithMembers(crewId: number) {
 }
 
 router.get("/crews", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as AuthedRequest).user;
+  const user = (req as any).user;
 
   const myCrewRows = await db
     .select({ crewId: crewMembersTable.crewId })
@@ -73,7 +73,7 @@ router.post("/crews", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const user = (req as AuthedRequest).user;
+  const user = (req as any).user;
 
   // Lookup additional members by username
   const memberUsernames = (parsed.data.memberUsernames ?? []).filter(
@@ -141,7 +141,7 @@ router.get(
       res.status(400).json({ error: params.error.message });
       return;
     }
-    const user = (req as AuthedRequest).user;
+    const user = (req as any).user;
 
     const [membership] = await db
       .select()
@@ -214,7 +214,7 @@ router.post(
       res.status(400).json({ error: "Message cannot be empty" });
       return;
     }
-    const user = (req as AuthedRequest).user;
+    const user = (req as any).user;
 
     const [membership] = await db
       .select()

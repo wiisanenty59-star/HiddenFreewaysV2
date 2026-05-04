@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+
 import healthRouter from "./health";
 import authRouter from "./auth";
 import statesRouter from "./states";
@@ -15,18 +16,37 @@ import messagesRouter from "./messages";
 
 const router: IRouter = Router();
 
-router.use(healthRouter);
-router.use(authRouter);
-router.use(statesRouter);
-router.use(categoriesRouter);
-router.use(locationsRouter);
-router.use(threadsRouter);
-router.use(feedRouter);
-router.use(adminRouter);
-router.use(announcementsRouter);
-router.use(votesRouter);
-router.use(chatRouter);
-router.use(crewsRouter);
-router.use(messagesRouter);
+/**
+ * =======================================================
+ * API ROUTE MOUNTING (CLEAN REST STRUCTURE)
+ * =======================================================
+ * Everything here is mounted under /api in app.ts
+ */
+
+router.use("/health", healthRouter);
+
+router.use("/auth", authRouter);
+
+router.use("/states", statesRouter);
+
+router.use("/categories", categoriesRouter);
+
+router.use("/locations", locationsRouter);
+
+router.use("/threads", threadsRouter);
+
+router.use("/feed", feedRouter);
+
+router.use("/admin", adminRouter);
+
+router.use("/announcements", announcementsRouter);
+
+router.use("/votes", votesRouter);
+
+router.use("/chat", chatRouter);
+
+router.use("/crews", crewsRouter);
+
+router.use("/messages", messagesRouter);
 
 export default router;

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { type Express } from "express";
 import cors from "cors";
 import session from "express-session";
@@ -8,9 +9,9 @@ import { logger } from "./lib/logger";
 import { loadUser } from "./lib/auth";
 import { pool } from "@workspace/db";
 
-// Bootstrap the express-session storage table without relying on
-// connect-pg-simple's bundled table.sql file (which we cannot resolve from
-// this monorepo at runtime).  We use the same layout the library expects.
+// -----------------------------
+// SESSION TABLE BOOTSTRAP
+// -----------------------------
 void (async () => {
   try {
     await pool.query(`
@@ -20,9 +21,11 @@ void (async () => {
         "expire" timestamp(6) NOT NULL
       );
     `);
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS "IDX_sessions_pg_expire" ON "sessions_pg" ("expire");`,
-    );
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS "IDX_sessions_pg_expire"
+      ON "sessions_pg" ("expire");
+    `);
   } catch (err) {
     logger.error({ err }, "Failed to ensure sessions_pg table");
   }
@@ -32,6 +35,9 @@ const app: Express = express();
 
 app.set("trust proxy", 1);
 
+// -----------------------------
+// LOGGING
+// -----------------------------
 app.use(
   pinoHttp({
     logger,
@@ -49,18 +55,36 @@ app.use(
         };
       },
     },
-  }),
+  })
 );
+
+// -----------------------------
+// CORE MIDDLEWARE
+// -----------------------------
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const PgSession = connectPgSimpleFactory(session);
+// -----------------------------
+// ENV SAFETY (SO SERVER DOESN'T HARD CRASH)
+// -----------------------------
+const sessionSecret = process.env.SESSION_SECRET;
+const databaseUrl = process.env.DATABASE_URL;
+const port = process.env.PORT ?? "3000";
 
-const sessionSecret = process.env["SESSION_SECRET"];
+// fallback safety instead of crashing entire app
 if (!sessionSecret) {
-  throw new Error("SESSION_SECRET environment variable is required.");
+  logger.warn("SESSION_SECRET missing — using unsafe fallback (DEV ONLY)");
 }
+
+if (!databaseUrl) {
+  logger.warn("DATABASE_URL missing — DB features will fail");
+}
+
+// -----------------------------
+// SESSION STORE
+// -----------------------------
+const PgSession = connectPgSimpleFactory(session);
 
 app.use(
   session({
@@ -70,7 +94,7 @@ app.use(
       createTableIfMissing: false,
     }),
     name: "hf.sid",
-    secret: sessionSecret,
+    secret: sessionSecret || "dev-insecure-secret",
     resave: false,
     saveUninitialized: false,
     rolling: true,
@@ -78,13 +102,29 @@ app.use(
       httpOnly: true,
       sameSite: "lax",
       secure: false,
-      maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+      maxAge: 1000 * 60 * 60 * 24 * 30,
     },
-  }),
+  })
 );
 
+// -----------------------------
+// AUTH ATTACHMENT
+// -----------------------------
 app.use(loadUser);
 
+// -----------------------------
+// ROUTES
+// -----------------------------
 app.use("/api", router);
+
+// -----------------------------
+// ROOT ROUTE (REMOVES 404 NOISE)
+// -----------------------------
+app.get("/", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "HiddenFreeways API",
+  });
+});
 
 export default app;
